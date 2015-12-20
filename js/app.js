@@ -23,16 +23,76 @@
     scale: 0,
     offset: {top: 0, left: 0},
     entities: [],
-    nextBubble: 10,
+    isRunning: true,
 
-    score: {
-      taps: 0,
-      hit: 0,
-      escaped: 0,
-      accuracy: 0
+    levels: [
+      // LEVEL 1
+      {
+        nextBubbleDuration: 100,
+        bubbleSpeed: (Math.random() * 1) + 2,
+        goal: 20
+      },
+      // LEVEL 2
+      {
+        nextBubbleDuration: 100,
+        bubbleSpeed: (Math.random() * 2) + 3,
+        goal: 30,
+        waterDuration: 0.01
+      },
+      // LEVEL 3
+      {
+        nextBubbleDuration: 90,
+        bubbleSpeed: (Math.random() * 2) + 3,
+        goal: 40,
+        waterDuration: 0.02
+      },
+      // LEVEL 4
+      {
+        nextBubbleDuration: 80,
+        bubbleSpeed: (Math.random() * 3) + 1,
+        goal: 30,
+        waterDuration: 0.02
+      }
+    ],
+
+    pause: function() {
+      POP.isRunning = !POP.isRunning;
+
+      if (POP.isRunning) {
+        POP.loop();
+      }
+    },
+
+    clearScore: function(level) {
+      level = level || 0;
+
+      if (level > POP.levels.length) {
+        throw new Error('Too hight level number');
+        return;
+      }
+
+      POP.score = {
+        level: level,
+        taps: 0,
+        hit: 0,
+        escaped: 0,
+        accuracy: 0,
+        goal: POP.levels[level].goal
+      }
+    },
+
+    restart: function(level) {
+      POP.clearScore(level);
+      POP.wave.restart();
+      POP.entities = [];
+      POP.nextBubbleDuration = POP.levels[POP.score.level].nextBubbleDuration;
+      POP.nextBubble = POP.nextBubbleDuration;
+      POP.waterDuration = POP.levels[POP.score.level].waterDuration;
     },
 
     init: function() {
+      POP.restart(0);
+
       POP.RATIO = POP.WIDTH / POP.HEIGHT;
 
       POP.currentWidth = POP.WIDTH;
@@ -65,11 +125,11 @@
       var i;
       var checkCollision = false;
 
-      POP.nextBubble -= 3;
+      POP.nextBubble -= 1;
 
       if (POP.nextBubble < 0) {
         POP.entities.push(new POP.Bubble());
-        POP.nextBubble = (Math.random() * 100) + 100;
+        POP.nextBubble = POP.nextBubbleDuration;
       }
 
       if (POP.Input.tapped) {
@@ -97,6 +157,10 @@
                 'rgba(255,255,255,' + Math.random() + 1 + ')'
                 ))
             }
+
+            if (POP.score.hit === POP.score.goal) {
+              POP.restart(POP.score.level + 1);
+            }
           }
 
           POP.entities[i].remove = hit;
@@ -110,8 +174,11 @@
       POP.score.accuracy = POP.score.hit / POP.score.taps * 100;
       POP.score.accuracy = isNaN(POP.score.accuracy) ? 0 : ~~(POP.score.accuracy);
 
-      POP.wave.time = new Date().getTime() * 0.002;
-      POP.wave.offset = Math.sin(POP.wave.time * 0.8) * 5;
+      POP.wave.update();
+
+      if (POP.wave.getWaterLevel() >= POP.HEIGHT) {
+        POP.isRunning = false;
+      }
     },
 
     render: function() {
@@ -126,21 +193,28 @@
       var fontSize = 14;
 
       var fontColor = {
-        hit: POP.wave.getWaterLevel() > 20 ? 'blue' : '#fff',
-        escaped: POP.wave.getWaterLevel() > 40 ? 'blue': '#fff',
-        accuracy: POP.wave.getWaterLevel() > 60 ? 'blue': '#fff'
+        level: POP.wave.getWaterLevel() > 20 ? '#036' : '#fff',
+        hit: POP.wave.getWaterLevel() > 40 ? '#036' : '#fff',
+        escaped: POP.wave.getWaterLevel() > 60 ? '#036': '#fff',
+        accuracy: POP.wave.getWaterLevel() > 70 ? '#036': '#fff'
       };
 
       POP.wave.render();
+      POP.DRAW.text('LEVEL: ' + parseInt(POP.score.level + 1), 20, 30, fontSize + 5, fontColor.level);
+      POP.DRAW.text('Hit: ' + POP.score.hit + '/' + POP.score.goal, 20, 50, fontSize, fontColor.hit);
+      POP.DRAW.text('Escaped: ' + POP.score.escaped, 20, 70, fontSize, fontColor.escaped);
+      POP.DRAW.text('Accuracy: ' + POP.score.accuracy + '%', 20, 90, fontSize, fontColor.accuracy);
 
-      POP.DRAW.text('Hit: ' + POP.score.hit, 20, 30, fontSize, fontColor.hit);
-      POP.DRAW.text('Escaped: ' + POP.score.escaped, 20, 50, fontSize, fontColor.escaped);
-      POP.DRAW.text('Accuracy: ' + POP.score.accuracy + '%', 20, 70, fontSize, fontColor.accuracy);
+      if (!POP.isRunning) {
+        POP.DRAW.text('GAME OVER', 50, POP.HEIGHT / 2, 40, '#036');
+      }
 
     },
 
     loop: function() {
-      requestAnimFrame(POP.loop);
+      if (POP.isRunning) {
+        requestAnimFrame(POP.loop);
+      }
 
       POP.update();
       POP.render();
@@ -214,10 +288,14 @@
     },
 
     Touch: function(x, y) {
+      if (!POP.isRunning) {
+        return;
+      }
+
       this.type = 'touch';
       this.x = x;
       this.y = y;
-      this.r = 5;
+      this.r = 20;
       this.opacity = 1;
       this.fade = 0.05;
       this.remove = false;
@@ -240,7 +318,7 @@
 
       this.waveSize = 5 + this.r;
       this.xConstant = this.x;
-      this.speed = (Math.random() * 3) + 2;
+      this.speed = POP.levels[POP.score.level].bubbleSpeed;
       this.remove = false;
 
       this.update = function() {
@@ -311,12 +389,18 @@
 
     wave: {
       x: -25,
+      initialY: -40,
       y: -40,
       r: 50,
       time: 0,
       offset: 0,
       rectHeight: 0,
       speed: 0.05,
+
+      restart: function() {
+        this.y = this.initialY;
+        this.rectHeight = 0;
+      },
 
       decWaterLevel: function(speed) {
         this.y += speed;
@@ -329,7 +413,12 @@
       },
 
       update: function() {
-        // this.decWaterLevel(this.speed);
+        POP.wave.time = new Date().getTime() * 0.002;
+        POP.wave.offset = Math.sin(POP.wave.time * 0.8) * 5;
+
+        if (!!POP.waterDuration) {
+          this.decWaterLevel(POP.waterDuration);
+        }
       },
 
       getWaterLevel: function() {
@@ -346,8 +435,6 @@
         }
 
         POP.DRAW.rect(0, 0, POP.currentWidth, this.rectHeight, '#fff');
-
-
       }
 
     }
@@ -374,4 +461,8 @@
   window.addEventListener('touchend', function(e) {
     e.preventDefault();
   }, false);
+
+  window.init = POP.init;
+  window.pause = POP.pause;
+  window.restart = POP.restart;
 })();
