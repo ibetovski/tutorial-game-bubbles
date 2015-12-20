@@ -23,7 +23,7 @@
     scale: 0,
     offset: {top: 0, left: 0},
     entities: [],
-    nextBubble: 100,
+    nextBubble: 10,
 
     score: {
       taps: 0,
@@ -65,7 +65,7 @@
       var i;
       var checkCollision = false;
 
-      POP.nextBubble -= 1;
+      POP.nextBubble -= 3;
 
       if (POP.nextBubble < 0) {
         POP.entities.push(new POP.Bubble());
@@ -88,6 +88,7 @@
 
           if (hit) {
             POP.score.hit += 1;
+
             for (var j = 0; j < 10; j++) {
               POP.entities.push(new POP.Particle(
                 POP.entities[i].x,
@@ -123,18 +124,19 @@
       }
 
       var fontSize = 14;
-      var fontColor = '#fff';
-      POP.DRAW.text('Hit: ' + POP.score.hit, 20, 30, fontSize, fontColor);
-      POP.DRAW.text('Escaped: ' + POP.score.escaped, 20, 50, fontSize, fontColor);
-      POP.DRAW.text('Accuracy: ' + POP.score.accuracy + '%', 20, 70, fontSize, fontColor);
 
-      for (var i=0; i < POP.wave.total; i++) {
-        POP.DRAW.circle(
-            POP.wave.x + POP.wave.offset + (i * POP.wave.r),
-            POP.wave.y,
-            POP.wave.r,
-            '#FFF');
-      }
+      var fontColor = {
+        hit: POP.wave.getWaterLevel() > 20 ? 'blue' : '#fff',
+        escaped: POP.wave.getWaterLevel() > 40 ? 'blue': '#fff',
+        accuracy: POP.wave.getWaterLevel() > 60 ? 'blue': '#fff'
+      };
+
+      POP.wave.render();
+
+      POP.DRAW.text('Hit: ' + POP.score.hit, 20, 30, fontSize, fontColor.hit);
+      POP.DRAW.text('Escaped: ' + POP.score.escaped, 20, 50, fontSize, fontColor.escaped);
+      POP.DRAW.text('Accuracy: ' + POP.score.accuracy + '%', 20, 70, fontSize, fontColor.accuracy);
+
     },
 
     loop: function() {
@@ -142,6 +144,7 @@
 
       POP.update();
       POP.render();
+      POP.wave.update();
     },
 
     resize: function() {
@@ -237,7 +240,7 @@
 
       this.waveSize = 5 + this.r;
       this.xConstant = this.x;
-      this.speed = (Math.random() * 3) + 1;
+      this.speed = (Math.random() * 3) + 2;
       this.remove = false;
 
       this.update = function() {
@@ -245,8 +248,18 @@
         this.y -= this.speed;
 
         this.x = this.waveSize * Math.sin(time) + this.xConstant;
-        if (this.y < -10) {
+        if (this.y < POP.wave.getWaterLevel()) {
+          for (var j = 0; j < 10; j++) {
+            POP.entities.push(new POP.Particle(
+              this.x,
+              this.y,
+              2,
+              'rgba(255,255,255,' + Math.random() + 1 + ')'
+              ))
+          }
+
           POP.score.escaped += 1;
+          POP.wave.decWaterLevel(3);
           this.remove = true;
         }
       }
@@ -302,6 +315,41 @@
       r: 50,
       time: 0,
       offset: 0,
+      rectHeight: 0,
+      speed: 0.05,
+
+      decWaterLevel: function(speed) {
+        this.y += speed;
+        this.rectHeight += speed;
+      },
+
+      incWaterLevel: function(speed) {
+        this.y -= speed;
+        this.rectHeight -= speed;
+      },
+
+      update: function() {
+        // this.decWaterLevel(this.speed);
+      },
+
+      getWaterLevel: function() {
+        return this.y + this.r;
+      },
+
+      render: function() {
+        for (var i=0; i < POP.wave.total; i++) {
+          POP.DRAW.circle(
+              POP.wave.x + POP.wave.offset + (i * POP.wave.r),
+              POP.wave.y,
+              POP.wave.r,
+              '#FFF');
+        }
+
+        POP.DRAW.rect(0, 0, POP.currentWidth, this.rectHeight, '#fff');
+
+
+      }
+
     }
   }
 
