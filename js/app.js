@@ -25,35 +25,7 @@
     entities: [],
     isRunning: true,
 
-    levels: [
-      // LEVEL 1
-      {
-        nextBubbleDuration: 100,
-        bubbleSpeed: (Math.random() * 1) + 2,
-        goal: 20
-      },
-      // LEVEL 2
-      {
-        nextBubbleDuration: 100,
-        bubbleSpeed: (Math.random() * 2) + 3,
-        goal: 30,
-        waterDuration: 0.01
-      },
-      // LEVEL 3
-      {
-        nextBubbleDuration: 90,
-        bubbleSpeed: (Math.random() * 2) + 3,
-        goal: 40,
-        waterDuration: 0.02
-      },
-      // LEVEL 4
-      {
-        nextBubbleDuration: 80,
-        bubbleSpeed: (Math.random() * 3) + 1,
-        goal: 30,
-        waterDuration: 0.02
-      }
-    ],
+    levels: [],
 
     pause: function() {
       POP.isRunning = !POP.isRunning;
@@ -66,28 +38,26 @@
     clearScore: function(level) {
       level = level || 0;
 
-      if (level > POP.levels.length) {
-        throw new Error('Too hight level number');
-        return;
-      }
-
       POP.score = {
         level: level,
         taps: 0,
         hit: 0,
         escaped: 0,
         accuracy: 0,
-        goal: POP.levels[level].goal
+        goal: POP.levels[POP.levels.length - 1].goal
       }
     },
 
     restart: function(level) {
+      POP.generateNextLevel(level);
       POP.clearScore(level);
       POP.wave.restart();
       POP.entities = [];
-      POP.nextBubbleDuration = POP.levels[POP.score.level].nextBubbleDuration;
+      POP.nextBubbleDuration = POP.levels[POP.levels.length - 1].nextBubbleDuration;
       POP.nextBubble = POP.nextBubbleDuration;
-      POP.waterDuration = POP.levels[POP.score.level].waterDuration;
+      POP.waterDuration = POP.levels[POP.levels.length - 1].waterDuration;
+
+      return POP.levels[POP.levels.length - 1];
     },
 
     init: function() {
@@ -140,7 +110,9 @@
       }
 
       for (i = 0; i < POP.entities.length; i += 1) {
-        POP.entities[i].update();
+        if (POP.isRunning) {
+          POP.entities[i].update();
+        }
 
         if (POP.entities[i].type === 'bubble' && checkCollision) {
           hit = POP.collides(POP.entities[i],
@@ -158,15 +130,18 @@
                 ))
             }
 
-            if (POP.score.hit === POP.score.goal) {
-              POP.restart(POP.score.level + 1);
-            }
+            POP.nextBubble = 0;
+
           }
 
           POP.entities[i].remove = hit;
+
+          if (POP.score.hit === POP.score.goal) {
+            POP.restart(POP.score.level + 1);
+          }
         }
 
-        if (POP.entities[i].remove) {
+        if (POP.entities.length && POP.entities[i].remove) {
           POP.entities.splice(i, 1);
         }
       }
@@ -187,7 +162,9 @@
       POP.DRAW.rect(0, 0, POP.WIDTH, POP.HEIGHT, '#036');
 
       for (var i = 0; i < POP.entities.length; i += 1) {
-        POP.entities[i].render();
+        if (typeof POP.entities[i].render === 'function') {
+          POP.entities[i].render();
+        }
       }
 
       var fontSize = 14;
@@ -212,9 +189,7 @@
     },
 
     loop: function() {
-      if (POP.isRunning) {
-        requestAnimFrame(POP.loop);
-      }
+      requestAnimFrame(POP.loop);
 
       POP.update();
       POP.render();
@@ -276,6 +251,7 @@
     Input: {
       x: 0,
       y: 0,
+      r: 10,
       tapped: false,
 
       set: function(data) {
@@ -283,15 +259,11 @@
         this.y = (data.pageY - POP.offset.top) / POP.scale;
         this.tapped = true;
 
-        POP.DRAW.circle(this.x, this.y, 10, 'red');
+        POP.DRAW.circle(this.x, this.y, this.r, 'red');
       }
     },
 
     Touch: function(x, y) {
-      if (!POP.isRunning) {
-        return;
-      }
-
       this.type = 'touch';
       this.x = x;
       this.y = y;
@@ -318,7 +290,7 @@
 
       this.waveSize = 5 + this.r;
       this.xConstant = this.x;
-      this.speed = POP.levels[POP.score.level].bubbleSpeed;
+      this.speed = POP.levels[POP.levels.length - 1].bubbleSpeed();
       this.remove = false;
 
       this.update = function() {
@@ -349,10 +321,10 @@
 
     collides: function(a, b) {
       var distanceSquared = ( ((a.x - b.x) * (a.x - b.x)) +
-                              ( (a.y - b.y) * (a.y - b.y)));
+                                ( (a.y - b.y) * (a.y - b.y)));
 
-      var radiiSquared = (a.r + b.r) * (a.r + b.r);
-      return (distanceSquared < radiiSquared);
+        var radiiSquared = (a.r + b.r) * (a.r + b.r);
+        return (distanceSquared < radiiSquared);
     },
 
     Particle: function(x, y, r, col) {
@@ -413,6 +385,8 @@
       },
 
       update: function() {
+        if (!POP.isRunning) return;
+
         POP.wave.time = new Date().getTime() * 0.002;
         POP.wave.offset = Math.sin(POP.wave.time * 0.8) * 5;
 
@@ -437,6 +411,62 @@
         POP.DRAW.rect(0, 0, POP.currentWidth, this.rectHeight, '#fff');
       }
 
+    },
+
+    generateNextLevel: function(level) {
+      var level;
+      var goalInterval = 10;
+      var waterDuration;
+
+      var newLevel = {};
+      newLevel.waterDuration = getWaterDuration(level);
+      newLevel.nextBubbleDuration = getBubbleDuration(level);
+      newLevel.bubbleSpeed = getBubbleSpeed(level);
+      newLevel.goal = getGoal(level);
+
+      POP.levels.push(newLevel);
+
+      function getBubbleDuration(level) {
+        return 100 - (level * 2);
+      }
+
+      function getBubbleSpeed(level) {
+        return function() {
+          var speed = (Math.random() * level / 2) + 1;
+          if (speed >= 10) {
+            speed = speed / 2;
+          }
+          return speed;
+        }
+      }
+
+      function getGoal(level) {
+        var goal;
+
+        level = level || 1;
+
+        if (level > 3) {
+          goalInterval = level;
+        }
+
+        goal = goalInterval * level;
+
+        if (level > 5) {
+          goal = Math.ceil(goal / 2);
+        }
+
+        if (level > 8) {
+          goal = Math.ceil(goal / 3);
+        }
+
+        return goal;
+      }
+
+      function getWaterDuration(level) {
+        var string = '0.0';
+        waterDuration = parseFloat(string + (level / 2));
+        return waterDuration;
+      }
     }
   }
 
@@ -462,7 +492,10 @@
     e.preventDefault();
   }, false);
 
+  // for develop purposes.
   window.init = POP.init;
   window.pause = POP.pause;
   window.restart = POP.restart;
+  window.levels = POP.levels;
+  window.POP = POP;
 })();
