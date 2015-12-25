@@ -23,6 +23,7 @@
     scale: 0,
     offset: {top: 0, left: 0},
     entities: [],
+    nextFish: 30,
     isRunning: true,
 
     levels: [],
@@ -52,7 +53,7 @@
       POP.generateNextLevel(level);
       POP.clearScore(level);
       POP.wave.restart();
-      POP.entities = [];
+      // POP.entities = [];
       POP.nextBubbleDuration = POP.levels[POP.levels.length - 1].nextBubbleDuration;
       POP.nextBubble = POP.nextBubbleDuration;
       POP.waterDuration = POP.levels[POP.levels.length - 1].waterDuration;
@@ -75,6 +76,14 @@
 
       POP.ctx = POP.canvas.getContext('2d');
 
+      POP.images = {};
+      POP.images['fish'] = new Image();
+      POP.images['fish'].onload = function() {
+        console.log('image loaded');
+      }
+
+      POP.images['fish'].src = './img/fish.png';
+
       POP.ua = navigator.userAgent.toLowerCase();
       POP.android = POP.ua.indexOf('android') > -1 ? true : false;
       POP.ios = ( POP.ua.indexOf('iphone') > -1 || POP.ua.indexOf('ipad') > -1  ) ? true : false;
@@ -96,10 +105,17 @@
       var checkCollision = false;
 
       POP.nextBubble -= 1;
+      POP.nextFish -= 1;
 
       if (POP.nextBubble < 0) {
         POP.entities.push(new POP.Bubble());
         POP.nextBubble = POP.nextBubbleDuration;
+
+      }
+
+      if (POP.nextFish < 0) {
+        POP.entities.push(new POP.Fish());
+        POP.nextFish = 30;
       }
 
       if (POP.Input.tapped) {
@@ -282,10 +298,10 @@
       }
     },
 
-    Bubble: function() {
+    Bubble: function(type) {
       this.type = 'bubble';
       this.r = (Math.random() * 20) + 10;
-      this.x = (Math.random() * (POP.WIDTH  - this.r));
+      this.x = (Math.random() * (POP.WIDTH - this.r));
       this.y = POP.HEIGHT + (Math.random() * 100) + 100;
 
       this.waveSize = 5 + this.r;
@@ -318,6 +334,37 @@
         POP.DRAW.circle(this.x, this.y, this.r, 'rgba(255,255,255,0.4)', '#fff')
       }
     },
+
+
+    Fish: function() {
+      this.type = 'fish';
+      this.r = (Math.random() * 20) + 10;
+      this.x = POP.WIDTH + (Math.random() * 100) + 100;
+      this.y = (Math.random() * (POP.HEIGHT - this.r));
+
+      this.waveSize = 2 + this.r / 2;
+      this.yConstant = this.y;
+      this.speed = Math.random();
+      this.remove = false;
+
+      this.update = function() {
+        var time = new Date().getTime() * 0.002;
+        this.x -= this.speed;
+
+        this.y = this.waveSize * Math.sin(time) + this.yConstant;
+        if (this.x < 0) {
+          this.remove = true;
+        }
+      }
+
+      this.render = function() {
+        POP.ctx.globalAlpha = this.r * 0.03;
+        POP.ctx.drawImage(POP.images['fish'], this.x, this.y, this.r, this.r - (this.r / 0.6));
+        POP.ctx.globalAlpha = 1;
+      }
+    },
+
+
 
     collides: function(a, b) {
       var distanceSquared = ( ((a.x - b.x) * (a.x - b.x)) +
