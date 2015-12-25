@@ -115,7 +115,7 @@
 
       if (POP.nextFish < 0) {
         POP.entities.push(new POP.Fish());
-        POP.nextFish = 30;
+        POP.nextFish = 100 - (POP.score.level * 10);
       }
 
       if (POP.Input.tapped) {
@@ -339,12 +339,12 @@
     Fish: function() {
       this.type = 'fish';
       this.r = (Math.random() * 20) + 10;
-      this.x = POP.WIDTH + (Math.random() * 100) + 100;
-      this.y = (Math.random() * (POP.HEIGHT - this.r));
+      this.x = POP.currentWidth + (Math.random() * 100) + 100;
+      this.y = (Math.random() * (POP.currentHeight - this.r));
 
       this.waveSize = 2 + this.r / 2;
       this.yConstant = this.y;
-      this.speed = Math.random();
+      this.speed = Math.random() * this.r * 0.02;
       this.remove = false;
 
       this.update = function() {
@@ -352,7 +352,7 @@
         this.x -= this.speed;
 
         this.y = this.waveSize * Math.sin(time) + this.yConstant;
-        if (this.x < 0) {
+        if (this.x < -40) {
           this.remove = true;
         }
       }
