@@ -53,6 +53,24 @@
       POP.generateNextLevel(level);
       POP.clearScore(level);
       POP.wave.restart();
+
+      var allItems = POP.entities.filter(function(item) {
+        return item.type==='bubble';
+      });
+
+      allItems.forEach(function(item) {
+        for (var j = 0; j < 10; j++) {
+          POP.entities.push(new POP.Particle(
+            item.x,
+            item.y,
+            2,
+            'rgba(255,255,255,' + Math.random() + 1 + ')'
+            ))
+        }
+
+        item.remove = true;
+      });
+
       // POP.entities = [];
       POP.nextBubbleDuration = POP.levels[POP.levels.length - 1].nextBubbleDuration;
       POP.nextBubble = POP.nextBubbleDuration;
