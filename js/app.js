@@ -23,7 +23,7 @@
     scale: 0,
     offset: {top: 0, left: 0},
     entities: [],
-    nextFish: 30,
+    nextFish: 100,
     isRunning: true,
 
     levels: [],
@@ -115,7 +115,7 @@
 
       if (POP.nextFish < 0) {
         POP.entities.push(new POP.Fish());
-        POP.nextFish = 100 - (POP.score.level * 10);
+        POP.nextFish = 100;
       }
 
       if (POP.Input.tapped) {
@@ -344,7 +344,7 @@
 
       this.waveSize = 2 + this.r / 2;
       this.yConstant = this.y;
-      this.speed = Math.random() * this.r * 0.02;
+      this.speed = Math.random() * this.r * 0.04;
       this.remove = false;
 
       this.update = function() {
