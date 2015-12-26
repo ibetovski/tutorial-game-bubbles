@@ -301,8 +301,8 @@
     Bubble: function(type) {
       this.type = 'bubble';
       this.r = (Math.random() * 20) + 10;
-      this.x = (Math.random() * (POP.WIDTH - this.r));
-      this.y = POP.HEIGHT + (Math.random() * 100) + 100;
+      this.x = (Math.random() * (POP.currentWidth - this.r)) + this.r;
+      this.y = POP.currentHeight + (Math.random() * 100) + this.r;
 
       this.waveSize = 5 + this.r;
       this.xConstant = this.x;
