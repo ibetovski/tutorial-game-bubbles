@@ -102,6 +102,33 @@
 
       POP.images['fish'].src = './img/fish.png';
 
+
+      POP.images['bubble1'] = new Image();
+      POP.images['bubble1'].onload = function() {
+        console.log('image loaded');
+      }
+
+      POP.images['bubble1'].src = './img/bubble1.png';
+
+
+      POP.images['bubble2'] = new Image();
+      POP.images['bubble2'].onload = function() {
+        console.log('image loaded');
+      }
+
+      POP.images['bubble2'].src = './img/bubble2.png';
+
+
+
+      POP.images['bubble3'] = new Image();
+      POP.images['bubble3'].onload = function() {
+        console.log('image loaded');
+      }
+
+      POP.images['bubble3'].src = './img/bubble3.png';
+
+
+
       POP.ua = navigator.userAgent.toLowerCase();
       POP.android = POP.ua.indexOf('android') > -1 ? true : false;
       POP.ios = ( POP.ua.indexOf('iphone') > -1 || POP.ua.indexOf('ipad') > -1  ) ? true : false;
@@ -109,9 +136,6 @@
       POP.resize();
 
       POP.DRAW.clear();
-      POP.DRAW.rect(120, 120, 150, 150, 'green');
-      POP.DRAW.circle(100, 100, 50, 'rgba(255,0,0,0.5)');
-      POP.DRAW.text('Hello world', 100, 100, 10, '#000');
 
       POP.loop();
 
@@ -193,7 +217,17 @@
     render: function() {
       POP.DRAW.clear();
 
-      POP.DRAW.rect(0, 0, POP.WIDTH, POP.HEIGHT, '#036');
+      var grad = POP.ctx.createLinearGradient(0,0,0,180);
+      grad.addColorStop(0, '#08b');
+      grad.addColorStop(1, '#036');
+      POP.ctx.fillStyle = grad;
+
+      POP.ctx.fillRect(0,POP.wave.getWaterLevel(),POP.WIDTH, POP.HEIGHT)
+
+
+      // POP.DRAW.rect(0, 0, POP.WIDTH, POP.HEIGHT, '#036');
+
+
 
       for (var i = 0; i < POP.entities.length; i += 1) {
         if (typeof POP.entities[i].render === 'function') {
@@ -318,7 +352,7 @@
 
     Bubble: function(type) {
       this.type = 'bubble';
-      this.r = (Math.random() * 20) + 10;
+      this.r = (Math.random() * 30) + 20;
       this.x = (Math.random() * (POP.currentWidth - this.r)) + this.r;
       this.y = POP.currentHeight + (Math.random() * 100) + this.r;
 
@@ -326,6 +360,9 @@
       this.xConstant = this.x;
       this.speed = POP.levels[POP.levels.length - 1].bubbleSpeed();
       this.remove = false;
+
+      var imageNumber = Math.ceil(Math.random() * 3);
+      this.image = POP.images['bubble' + imageNumber];
 
       this.update = function() {
         var time = new Date().getTime() * 0.002;
@@ -348,9 +385,18 @@
         }
       }
 
+      // this.render = function() {
+      //   POP.DRAW.circle(this.x, this.y, this.r, 'rgba(255,255,255,0.4)', '#fff')
+      // }
+      // 
+      
       this.render = function() {
-        POP.DRAW.circle(this.x, this.y, this.r, 'rgba(255,255,255,0.4)', '#fff')
+        
+        // POP.ctx.globalAlpha = this.r * 0.03;
+        POP.ctx.drawImage(this.image, this.x, this.y, this.r, this.image.height * (this.r/this.image.width));
+        // POP.ctx.globalAlpha = 1;
       }
+
     },
 
 
@@ -364,6 +410,7 @@
       this.yConstant = this.y;
       this.speed = Math.random() * this.r * 0.04;
       this.remove = false;
+      this.image = POP.images['fish'];
 
       this.update = function() {
         var time = new Date().getTime() * 0.002;
@@ -377,7 +424,7 @@
 
       this.render = function() {
         POP.ctx.globalAlpha = this.r * 0.03;
-        POP.ctx.drawImage(POP.images['fish'], this.x, this.y, this.r, this.r - (this.r / 0.6));
+        POP.ctx.drawImage(this.image, this.x, this.y, this.r, this.image.height * (this.r / this.image.width));
         POP.ctx.globalAlpha = 1;
       }
     },
@@ -473,7 +520,7 @@
               '#FFF');
         }
 
-        POP.DRAW.rect(0, 0, POP.currentWidth, this.rectHeight, '#fff');
+        POP.DRAW.rect(0, 0, POP.WIDTH, this.rectHeight, '#fff');
       }
 
     },
